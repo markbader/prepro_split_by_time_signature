@@ -20,21 +20,22 @@ def read_midis(midi_folder: Path) -> List[MidiFile]:
 
     return filenames
 
-def is_supported_ts(ts: TimeSignature) -> bool:
-    if f'{ts.numerator}/{ts.denominator}' in ('4/4', '3/4', '2/4', '6/8'):
+def is_supported_ts(ts: TimeSignature, ts_list: List[str]) -> bool:
+    if ts_list:
+        return f'{ts.numerator}/{ts.denominator}' in ts_list
+    else:
         return True
-    return False
 
-def main(midi_folder: Path, save_folder: Path) -> int:
+def main(midi_folder: Path, save_folder: Path, ts_list: List[str]) -> int:
     try:
         midis = read_midis(midi_folder)
         print(f'Found {len(midis)} MIDI files.')
         for i, filename in enumerate(midis):
             print(f'Process file {i}/{len(midis)}', end='\r', flush=True)
             midi = MidiFile(filename)
-            for idx, time_signature in enumerate(midi.time_signature_changes):
-                if is_supported_ts(time_signature):
-                    start = time_signature.time
+            for idx, ts in enumerate(midi.time_signature_changes):
+                if is_supported_ts(ts, ts_list):
+                    start = ts.time
                     if len(midi.time_signature_changes) > idx + 1:
                         end = midi.time_signature_changes[idx + 1].time - 1
                     else:
@@ -43,6 +44,7 @@ def main(midi_folder: Path, save_folder: Path) -> int:
                         continue
 
                     midi.dump(save_folder / f'{midi.name}_{idx}.mid', segment=(start, end))
+        print('Processing done.')
 
     except KeyboardInterrupt:
         print('Aborted manually.', file=stderr)
@@ -58,9 +60,10 @@ if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser(description='')
 
     argument_parser.add_argument('--midi-folder', type=Path, default='datasets/midi/', help="Folder containing the midi files.")
-    argument_parser.add_argument('--save-folder', type=Path, default='generated_transitions', help="Folder to save generated transitions.")
+    argument_parser.add_argument('--save-folder', type=Path, default='output/', help="Folder to save generated transitions.")
+    argument_parser.add_argument('--accepted-time-signatures', nargs='+', default=['4/4', '3/4', '2/4', '6/8'])
     args = argument_parser.parse_args()
 
     args.save_folder.mkdir(parents=True, exist_ok=True)
 
-    main(args.midi_folder, args.save_folder)
+    main(args.midi_folder, args.save_folder, args.accepted_time_signatures)
