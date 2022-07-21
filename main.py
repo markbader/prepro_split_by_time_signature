@@ -26,7 +26,7 @@ class MidiFile(BaseMidiFile):
 def read_midis(midi_folder: Path) -> List[MidiFile]:
     filenames = []
     for ext in ('*.mid', '*.midi'):
-        filenames.extend(midi_folder.glob(ext))
+        filenames.extend(midi_folder.rglob(ext))
 
     return filenames
 
